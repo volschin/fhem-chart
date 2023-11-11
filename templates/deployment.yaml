@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fhem.fullname" . }}
+  labels:
+    {{- include "fhem.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  {{- if .Values.updateStrategy }}
+  strategy: 
+    type: {{- toYaml .Values.updateStrategy | nindent 6 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fhem.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "fhem.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fhem.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: fhemweb
+              containerPort: {{ .Values.containerPorts.fhemweb }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /fhem
+              port: fhemweb
+          readinessProbe:
+            httpGet:
+              path: /fhem
+              port: fhemweb
+          volumeMounts:
+            - name: fhem-data
+              mountPath: /opt/fhem
+              subPath: fhem/
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: APT_PKGS
+              value: {{ default "" .Values.aptPkgs | quote }}
+            - name: CPAN_PKGS
+              value: {{ default "" .Values.cpanPkgs | quote }}
+            - name: PIP_PKGS
+              value: {{ default "" .Values.pipPkgs | quote }}
+            - name: NPM_PKGS
+              value: {{ default "" .Values.npmPkgs | quote }}
+            - name: LOGFILE
+              value: {{ default "./log/fhem-%Y-%m-%d.log" .Values.logfile | quote }}
+            - name: TELNETPORT
+              value: {{ default "7072" .Values.telnetport | quote }}
+            - name: FHEM_UID
+              value: {{ default "6061" .Values.fhemUID | quote }}
+            - name: FHEM_GID
+              value: {{ default "6061" .Values.fhemGID | quote }}
+            - name: FHEM_PERM_DIR
+              value: {{ default "0750" .Values.fhemPermDir | quote }}
+            - name: FHEM_PERM_FILE
+              value: {{ default "0640" .Values.fhemPermFile | quote }}
+            - name: UMASK
+              value: {{ default "0037" .Values.umask | quote }}
+            - name: BLUETOOTH_GID
+              value: {{ default "6001" .Values.bluetoothGID | quote }}
+            - name: GPIO_GID
+              value: {{ default "6002" .Values.gpioGID | quote }}
+            - name: I2C_GID
+              value: {{ default "6003" .Values.i2cGID | quote }}
+            - name: TIMEOUT
+              value: {{ default "" .Values.timeout | quote }}
+            - name: LANG
+              value: {{ default "en_US.UTF-8" .Values.lang | quote }}
+            - name: LANGUAGE
+              value: {{ default "en_US:en" .Values.language | quote }}
+            - name: LC_ADDRESS
+              value: {{ default "de_DE.UTF-8" .Values.lcAddress | quote }}
+            - name: LC_MEASUREMENT
+              value: {{ default "de_DE.UTF-8" .Values.measurement | quote }}
+            - name: LC_MESSAGES
+              value: {{ default "en_DK.UTF-8" .Values.lcMessages | quote }}
+            - name: LC_MONETARY
+              value: {{ default "de_DE.UTF-8" .Values.lcMonetary | quote }}
+            - name: LC_NAME
+              value: {{ default "de_DE.UTF-8" .Values.lcName | quote }}
+            - name: LC_NUMERIC
+              value: {{ default "de_DE.UTF-8" .Values.lcNumeric | quote }}
+            - name: LC_PAPER
+              value: {{ default "de_DE.UTF-8" .Values.lcPaper | quote }}
+            - name: LC_TELEPHONE
+              value: {{ default "de_DE.UTF-8" .Values.lcTelephone | quote }}
+            - name: LC_TIME
+              value: {{ default "de_DE.UTF-8" .Values.lcTime | quote }}
+            - name: TZ
+              value: {{ default "Europe/Berlin" .Values.timezone | quote }}
+            - name: CONFIGTYPE
+              value: {{ default "" .Values.configtype | quote }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: fhem-data
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "fhem.fullname" . }}
+        {{- end }}
+      restartPolicy: {{ default "Always" .Values.restartPolicy | quote }}

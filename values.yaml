@@ -1,0 +1,209 @@
+# Default values for fhem.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+## @param updateStrategy Strategy to use to update Pods
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+## take RollingUpdate for best practices
+updateStrategy: RollingUpdate
+
+image:
+  repository: fhem/fhem-minimal
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+### Tweak container settings using environment variables
+## Debian APT packages: "App::Name1 App::Name2"
+aptPkgs: ""
+## Perl CPAN modules: "package1 package2"
+cpanPkgs: ""
+## Python PIP packages: "package1 package2"
+pipPkgs: ""
+## Node.js NPM packages: "package1 package2"
+npmPkgs: ""
+## Change FHEM logfile format: To set a different logfile path and format (default is ./log/fhem-%Y-%m-%d.log):
+logfile: ""
+## Change FHEM local Telnet port for health check and container restart handling: To set a different Telnet port for local connection during health check and container restart (default is 7072):
+telnetport: ""
+## Change FHEM system user ID: To set a different UID for the user fhem (default is 6061):
+fhemUID: ""
+## Change FHEM group ID: To set a different GID for the group fhem (default is 6061):
+fhemGID: ""
+## Change FHEM directory permissions: To set different directory permissions for $FHEM_DIR (default is 0750):
+fhemPermDir: ""
+## Change FHEM file permissions: To set different file permissions for $FHEM_DIR (default is 0640):
+fhemPermFile: ""
+## Change umask: To set a different umask for FHEM_UID (default is 0037):
+umask: ""
+## Change Bluetooth group ID: To set a different GID for the group bluetooth (default is 6001):
+bluetoothGID: ""
+## Change GPIO group ID: To set a different GID for the group gpio (default is 6002):
+gpioGID: ""
+## Change I2C group ID: To set a different GID for the group i2c (default is 6003):
+i2cGID: ""
+## Change shutdown timeout: To set a different setting for the timer during FHEM shutdown handling, you may add this environment variable: 10
+timeout: ""
+## Set locale: For maximum compatibility, standard locale is set to US english with some refinements towards the European standards and German defaults. This may be changed according to your needs (also see Debian Wiki for more information):
+lang: ""
+language: ""
+lcAddress: ""
+lcMeasurement: ""
+lcMessages: ""
+lcMonetary: ""
+lcName: ""
+lcNumeric: ""
+lcPaper: ""
+lcTelephone: ""
+lcTime: ""
+## Set timezone: Set a specific timezone in POSIX format: Europe/Berlin
+timezone: ""
+## Using configDB: Should you be using FHEM config type configDB, you need to change the FHEM configuration source for correct startup by setting the following environment variable: configDB
+## fhem.cfg.demo for Democonfig
+configtype: "fhem.cfg.demo"
+### ENDE Container environment variables
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 6061
+
+## Enable persistence using Persistent Volume Claims
+## ref: https://kubernetes.io/docs/user-guide/persistent-volumes/
+## @param persistence.enabled Enable persistence using PVC
+## @param persistence.storageClass PVC Storage Class for DokuWiki volume
+## @param persistence.accessModes [array] PVC Access Mode for DokuWiki volume
+## @param persistence.size PVC Storage Request for DokuWiki volume
+## @param persistence.existingClaim Name of an existing PVC to be used
+## @param persistence.annotations Annotations to add to the PVC
+##
+persistence:
+  enabled: false
+  ## Dokuwiki data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+
+## @param containerPorts.fhemweb Container FHEMWEB port
+##
+containerPorts:
+  fhemweb: 8083
+
+service:
+  ## @param service.type Kubernetes Service type
+  ## For minikube, set this to NodePort, elsewhere use LoadBalancer
+  ##
+  type: LoadBalancer # LoadBalancer
+  ## @param service.loadBalancerIP Use serviceLoadBalancerIP to request a specific static IP, otherwise leave blank
+  ##
+  loadBalancerIP: ""
+  ## @param service.ports.http Service HTTP port
+  ## @param service.ports.https Service HTTPS port
+  ##
+  ports:
+    fhemweb: 80
+  ##
+  ## @param service.nodePorts [object] Use nodePorts to request some specific ports when using NodePort
+  ## nodePorts:
+  ##   http: <to set explicitly, choose port between 30000-32767>
+  ##   https: <to set explicitly, choose port between 30000-32767>
+  ##
+  nodePorts:
+    fhemweb: ""
+  ## @param service.clusterIP Kubernetes service Cluster IP
+  ## e.g.:
+  ## clusterIP: None
+  ##
+  clusterIP: ""
+  ## @param service.loadBalancerSourceRanges Kubernetes service Load Balancer sources
+  ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+  ## e.g:
+  ## loadBalancerSourceRanges:
+  ##   - 10.10.10.0/24
+  ##
+  loadBalancerSourceRanges: []
+  ## @param service.externalTrafficPolicy Enable client source IP preservation
+  ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+  ##
+  externalTrafficPolicy: Cluster
+  ## @param service.extraPorts Extra ports to expose in the service (normally used with the `sidecar` value)
+  ##
+  extraPorts: []
+  ## @param service.annotations Annotations to add to the service
+  ##
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: 
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 200m
+    memory: 192Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
